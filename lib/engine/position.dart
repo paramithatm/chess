@@ -2,6 +2,14 @@ import 'package:chess/engine/direction.dart';
 import 'package:chess/engine/piece.dart';
 import 'package:chess/engine/square.dart';
 
+// status of square x, depending on position and whose turn is it
+enum _SquareStatus {
+    empty,
+    ally,
+    enemy,
+    offBoard;
+  }
+
 // in chess it's called position; actually a board of what's current position
 // basically the game state at any given time
 // immutable, we create new position everytime instead -> undo / redo / calculate moves
@@ -72,14 +80,14 @@ class Position {
       case .pawn: return _pawnMovesFrom(from);
       case .bishop: return _slidingMoves(from, Direction.diagonal);
       case .rook: return _slidingMoves(from, Direction.straight);
-      case .knight: return _knightMovesFrom(from);
+      case .knight: return _steppingMoves(from, KnightDirection.values);
       case .queen: return _slidingMoves(from, Direction.values);
-      case .king: return _kingMovesFrom(from);
+      case .king: return _steppingMoves(from, Direction.values);
       case null: return [];
     }
   }
 
-  List<Square> _slidingMoves(Square from, List<Direction> direction) {
+  List<Square> _slidingMoves(Square from, List<Offset> direction) {
     final piece = pieceAt(from);
     final int rank = from.rank;
     final int file = from.file;
@@ -91,21 +99,18 @@ class Position {
       int r = rank + dir.dRank;
 
       // while still in board
-      while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
+      rayLoop:
+      while (Square(f, r).inBound) {
         final nextPosition = Square(f, r);
-        final occupant = pieceAt(nextPosition);
-        if (occupant == null) {
-          // empty, can continue
-          validMoves.add(nextPosition);
-        } else {
-          if (occupant.color == piece?.color) {
-            // ally, stop
-            break;
-          } else {
-            // enemy, capture
+        _SquareStatus status = statusOfSquare(nextPosition, piece!.color);
+        switch (status) {
+          case .ally || .offBoard:
+            break rayLoop;
+          case .enemy:
             validMoves.add(nextPosition);
-            break;
-          }
+            break rayLoop;
+          case .empty:
+            validMoves.add(nextPosition);
         }
         f += dir.dFile;
         r += dir.dRank;
@@ -114,15 +119,49 @@ class Position {
     return validMoves;
   }
 
-  List<Square> _knightMovesFrom(Square from) {
-    
+  List<Square> _steppingMoves(Square from, List<Offset> direction) {
+    final piece = pieceAt(from);
+    final int rank = from.rank;
+    final int file = from.file;
+    List<Square> validMoves = [];
+
+    for (final dir in direction) {
+      int f = file + dir.dFile;
+      int r = rank + dir.dRank;
+
+      // check in board
+      final coor = Square(f, r);
+      final _SquareStatus status = statusOfSquare(coor, piece!.color);
+      switch (status) {
+        case .enemy || .empty:
+          validMoves.add(coor);
+        case .ally || .offBoard:
+          break;
+      }
+    }
+    return validMoves;
   }
 
-  List<Square> _kingMovesFrom(Square from) {
-    return []; 
+
+  _SquareStatus statusOfSquare(Square square, PieceColor forColor) {
+    if (!square.inBound) {
+      return .offBoard;
+    } else {
+      final occupant = pieceAt(square);
+      if (occupant == null) {
+        return .empty;
+      } else {
+        if (occupant.color == forColor) {
+          return .ally;
+        } else {
+          return .enemy;
+        }
+      }
+    }
   }
 
   List<Square> _pawnMovesFrom(Square from) {
     return []; 
   }
 }
+

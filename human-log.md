@@ -33,4 +33,16 @@ rook, bishop, queen, is pretty straight forward (sliding moves)
 
 test getting tedious so asked claude to generate case & answers based on provided examples
 
-knight is a bit specific, 
+knight is a bit specific, because it jumps over (doesn't need to check neighbors)
+
+move generation is quite a place where i refactor some things over
+
+thought process:
+1. create rook move method, brute force 1 direction
+2. need to check all direction, doing 1 by 1 = code repetition. so create direction enum, loop all direction (4x max 7)
+3. similar with bishop except direction is diagonal. extract to slidingMove
+4. same with queen but all direction
+5. knight is different altogether so preparing a steppingMove
+6. king can reuse steppingMove, but logic wise it's queen, a bit weird
+7. quite a big refactor to reuse the move logic, extract status of (square), check whether empty / ally / enemy / invalid
+8. 

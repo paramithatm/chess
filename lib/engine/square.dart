@@ -5,6 +5,7 @@
 // queen's on her own color
 
 class Square {
+  static const int boardSize = 8;
 
   final int file; // a-h
   final int rank; // 1-8
@@ -25,4 +26,7 @@ class Square {
   String toString() {
     return humanNotation;
   }
+
+  // ensure coordinate in board
+  bool get inBound => file >= 0 && file < boardSize && rank >= 0 && rank < boardSize;
 }

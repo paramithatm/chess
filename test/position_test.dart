@@ -264,6 +264,127 @@ void main() {
     });
   });
 
+  group('valid knight moves', () {
+    test('white knight from center on an empty board', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .knight),
+      });
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(4, 5),
+          Square(2, 5),
+          Square(5, 4),
+          Square(1, 4),
+          Square(5, 2),
+          Square(1, 2),
+          Square(4, 1),
+          Square(2, 1),
+        ]),
+      );
+    });
+
+    test('from a corner has only two moves', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .knight),
+      });
+      expect(
+        position.movesFrom(Square(0, 0)),
+        unorderedEquals([
+          Square(1, 2),
+          Square(2, 1),
+        ]),
+      );
+    });
+
+    test('jumps over its own pawns from the initial position', () {
+      final board = Position.initial();
+      // white knight on b1 hops over the pawn wall on rank 2
+      expect(
+        board.movesFrom(Square(1, 0)),
+        unorderedEquals([
+          Square(0, 2),
+          Square(2, 2),
+        ]),
+      );
+    });
+
+    test('blocked by ally and can capture enemy', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .knight),
+        Square(4, 5): Piece(.white, .pawn), // ally blocks this landing square
+        Square(5, 4): Piece(.black, .rook), // enemy can be captured
+      });
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(2, 5),
+          Square(5, 4), // capture
+          Square(1, 4),
+          Square(5, 2),
+          Square(1, 2),
+          Square(4, 1),
+          Square(2, 1),
+        ]),
+      );
+    });
+  });
+
+  group('valid king moves', () {
+    test('white king from center on an empty board', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .king),
+      });
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(4, 3),
+          Square(2, 3),
+          Square(3, 4),
+          Square(3, 2),
+          Square(4, 4),
+          Square(4, 2),
+          Square(2, 4),
+          Square(2, 2),
+        ]),
+      );
+    });
+
+    test('from a corner has only three moves', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+      });
+      expect(
+        position.movesFrom(Square(0, 0)),
+        unorderedEquals([
+          Square(1, 0),
+          Square(0, 1),
+          Square(1, 1),
+        ]),
+      );
+    });
+
+    test('blocked by ally and can capture enemy', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .king),
+        Square(4, 3): Piece(.white, .pawn), // ally blocks this step
+        Square(2, 3): Piece(.black, .rook), // enemy can be captured
+      });
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(2, 3), // capture
+          Square(3, 4),
+          Square(3, 2),
+          Square(4, 4),
+          Square(4, 2),
+          Square(2, 4),
+          Square(2, 2),
+        ]),
+      );
+    });
+  });
+
   group('valid queen moves', () {
     test('white queen from center on an empty board', () {
       final position = Position.fromPieces({
