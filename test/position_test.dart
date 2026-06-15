@@ -1,0 +1,349 @@
+import 'package:chess/engine/piece.dart';
+import 'package:chess/engine/position.dart';
+import 'package:chess/engine/square.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('initial position', () {
+    test('pieces position should be set correctly', () {
+      final pos = Position.initial();
+      expect(pos.pieceAt(Square(3, 4)), null);
+      // white king at E1
+      expect(pos.pieceAt(Square(4, 0)), Piece(.white, .king));
+      // black king at E8
+      expect(pos.pieceAt(Square(4, 7)), Piece(.black, .king));
+
+      expect(pos.pieceAt(Square(1, 7)), Piece(.black, .knight));
+      expect(pos.pieceAt(Square(2, 7)), Piece(.black, .bishop));
+      expect(pos.pieceAt(Square(3, 7)), Piece(.black, .queen));
+      expect(pos.pieceAt(Square(3, 0)), Piece(.white, .queen));
+      expect(pos.pieceAt(Square(2, 1)), Piece(.white, .pawn));
+      expect(pos.pieceAt(Square(0, 0)), Piece(.white, .rook));
+    });
+  });
+
+  // test movesFrom()
+  group('valid rook moves', () {
+    test('black rook from bottom right corner on an empty board', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.black, .rook),
+      }, sideToMove: .black);
+      expect(
+        position.movesFrom(Square(0, 0)),
+        unorderedEquals([
+          Square(0, 1),
+          Square(0, 2),
+          Square(0, 3),
+          Square(0, 4),
+          Square(0, 5),
+          Square(0, 6),
+          Square(0, 7),
+          Square(1, 0),
+          Square(2, 0),
+          Square(3, 0),
+          Square(4, 0),
+          Square(5, 0),
+          Square(6, 0),
+          Square(7, 0),
+        ]),
+      );
+    });
+
+    test('white rook from center on an empty board', () {
+      final position = Position.fromPieces({
+        Square(4, 3): Piece(.white, .rook),
+      });
+      expect(
+        position.movesFrom(Square(4, 3)),
+        unorderedEquals([
+          Square(4, 0),
+          Square(4, 1),
+          Square(4, 2),
+          Square(4, 4),
+          Square(4, 5),
+          Square(4, 6),
+          Square(4, 7),
+          Square(0, 3),
+          Square(1, 3),
+          Square(2, 3),
+          Square(3, 3),
+          Square(5, 3),
+          Square(6, 3),
+          Square(7, 3),
+        ]),
+      );
+    });
+
+    test('from initial position', () {
+      final board = Position.initial();
+      // no valid moves because rook in corner blocked by ally
+      expect(board.movesFrom(Square(0, 0)), []);
+    });
+
+    test('at some side blocked by ally', () {
+      final position = Position.fromPieces({
+        Square(3, 2): Piece(.white, .rook),
+        Square(5, 2): Piece(.white, .knight),
+        Square(3, 6): Piece(.white, .queen),
+      });
+
+      expect(
+        position.movesFrom(Square(3, 2)),
+        unorderedEquals([
+          Square(3, 0),
+          Square(3, 1),
+          Square(3, 3),
+          Square(3, 4),
+          Square(3, 5),
+          Square(0, 2),
+          Square(1, 2),
+          Square(2, 2),
+          Square(4, 2),
+        ]),
+      );
+    });
+
+    test('black captures enemy', () {
+      final position = Position.fromPieces({
+        Square(4, 6): Piece(.black, .rook),
+        Square(4, 1): Piece(.white, .bishop),
+      }, sideToMove: .black);
+
+      expect(
+        position.movesFrom(Square(4, 6)),
+        unorderedEquals([
+          Square(4, 1),
+          Square(4, 2),
+          Square(4, 3),
+          Square(4, 4),
+          Square(4, 5),
+          Square(4, 7),
+          Square(0, 6),
+          Square(1, 6),
+          Square(2, 6),
+          Square(3, 6),
+          Square(5, 6),
+          Square(6, 6),
+          Square(7, 6),
+        ]),
+      );
+    });
+
+    test('blocked by ally and can captures enemy', () {
+      final position = Position.fromPieces({
+        Square(6, 5): Piece(.white, .rook),
+        Square(6, 2): Piece(.black, .bishop),
+        Square(2, 5): Piece(.white, .bishop),
+      }, sideToMove: .white);
+
+      expect(
+        position.movesFrom(Square(6, 5)),
+        unorderedEquals([
+          Square(6, 2),
+          Square(6, 3),
+          Square(6, 4),
+          Square(6, 6),
+          Square(6, 7),
+          Square(3, 5),
+          Square(4, 5),
+          Square(5, 5),
+          Square(7, 5),
+        ]),
+      );
+    });
+  });
+
+  group('valid bishop moves', () {
+    test('black bishop from bottom right corner on an empty board', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.black, .bishop),
+      }, sideToMove: .black);
+      expect(
+        position.movesFrom(Square(0, 0)),
+        unorderedEquals([
+          Square(1, 1),
+          Square(2, 2),
+          Square(3, 3),
+          Square(4, 4),
+          Square(5, 5),
+          Square(6, 6),
+          Square(7, 7),
+        ]),
+      );
+    });
+
+    test('white bishop from center on an empty board', () {
+      final position = Position.fromPieces({
+        Square(3, 4): Piece(.white, .bishop),
+      });
+      expect(position.movesFrom(Square(3, 4)), unorderedEquals([
+        Square(2,3),
+        Square(1,2),
+        Square(0,1),
+        Square(4,5),
+        Square(5,6),
+        Square(6,7),
+        Square(4,3),
+        Square(5,2),
+        Square(6,1),
+        Square(7,0),
+        Square(2,5),
+        Square(1,6),
+        Square(0,7),
+      ]));
+    });
+
+    test('from initial position', () {
+      final board = Position.initial();
+      expect(board.movesFrom(Square(0, 2)), []);
+    });
+
+    test('at some side blocked by ally', () {
+      final position = Position.fromPieces({
+        Square(4, 2): Piece(.white, .bishop),
+        Square(6, 0): Piece(.white, .knight),
+        Square(1, 5): Piece(.white, .queen),
+      });
+
+      expect(
+        position.movesFrom(Square(4, 2)),
+        unorderedEquals([
+          Square(5, 3),
+          Square(6, 4),
+          Square(7, 5),
+          Square(3, 1),
+          Square(2, 0),
+          Square(5, 1),
+          Square(3, 3),
+          Square(2, 4)
+        ]),
+      );
+    });
+
+    test('captures enemy', () {
+      // black bishop on b7; white enemy on e4 sits on its down-right diagonal
+      final position = Position.fromPieces({
+        Square(1, 6): Piece(.black, .bishop),
+        Square(4, 3): Piece(.white, .bishop),
+      }, sideToMove: .black);
+
+      expect(
+        position.movesFrom(Square(1, 6)),
+        unorderedEquals([
+          Square(2, 5),
+          Square(3, 4),
+          Square(4, 3), // capture
+          Square(2, 7),
+          Square(0, 7),
+          Square(0, 5),
+        ]),
+      );
+    });
+
+    test('blocked by ally and can capture enemy', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .bishop),
+        Square(5, 5): Piece(.white, .knight),
+        Square(1, 5): Piece(.black, .pawn),
+      });
+
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(4, 4),
+          Square(2, 4),
+          Square(1, 5), // capture
+          Square(4, 2),
+          Square(5, 1),
+          Square(6, 0),
+          Square(2, 2),
+          Square(1, 1),
+          Square(0, 0),
+        ]),
+      );
+    });
+  });
+
+  group('valid queen moves', () {
+    test('white queen from center on an empty board', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .queen),
+      });
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          // straight rays
+          Square(4, 3),
+          Square(5, 3),
+          Square(6, 3),
+          Square(7, 3),
+          Square(2, 3),
+          Square(1, 3),
+          Square(0, 3),
+          Square(3, 4),
+          Square(3, 5),
+          Square(3, 6),
+          Square(3, 7),
+          Square(3, 2),
+          Square(3, 1),
+          Square(3, 0),
+          // diagonal rays
+          Square(4, 4),
+          Square(5, 5),
+          Square(6, 6),
+          Square(7, 7),
+          Square(4, 2),
+          Square(5, 1),
+          Square(6, 0),
+          Square(2, 4),
+          Square(1, 5),
+          Square(0, 6),
+          Square(2, 2),
+          Square(1, 1),
+          Square(0, 0),
+        ]),
+      );
+    });
+
+    test('from initial position', () {
+      final board = Position.initial();
+      // queen on d1 is hemmed in by her own pieces
+      expect(board.movesFrom(Square(3, 0)), []);
+    });
+
+    test('blocked by ally and can capture enemy', () {
+      final position = Position.fromPieces({
+        Square(3, 3): Piece(.white, .queen),
+        Square(3, 5): Piece(.white, .pawn),
+        Square(1, 1): Piece(.white, .knight),
+        Square(5, 3): Piece(.black, .rook),
+      });
+
+      expect(
+        position.movesFrom(Square(3, 3)),
+        unorderedEquals([
+          Square(4, 3),
+          Square(5, 3), // capture
+          Square(2, 3),
+          Square(1, 3),
+          Square(0, 3),
+          Square(3, 4),
+          Square(3, 2),
+          Square(3, 1),
+          Square(3, 0),
+          Square(4, 4),
+          Square(5, 5),
+          Square(6, 6),
+          Square(7, 7),
+          Square(4, 2),
+          Square(5, 1),
+          Square(6, 0),
+          Square(2, 4),
+          Square(1, 5),
+          Square(0, 6),
+          Square(2, 2),
+        ]),
+      );
+    });
+  });
+}
