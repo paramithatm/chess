@@ -76,19 +76,19 @@ class Position {
   // not to be confused with legal: valid and comply to the rules 
   // (especially king's check), and many others
   List<Square> movesFrom(Square from) {
-    switch (pieceAt(from)?.type) {
-      case .pawn: return _pawnMovesFrom(from);
-      case .bishop: return _slidingMoves(from, Direction.diagonal);
-      case .rook: return _slidingMoves(from, Direction.straight);
-      case .knight: return _steppingMoves(from, KnightDirection.values);
-      case .queen: return _slidingMoves(from, Direction.values);
-      case .king: return _steppingMoves(from, Direction.values);
-      case null: return [];
+    final piece = pieceAt(from);
+    if (piece == null) return [];
+    switch (piece.type) {
+      case .pawn: return _pawnMoves(from, piece.color);
+      case .bishop: return _slidingMoves(from, Direction.diagonal, piece.color);
+      case .rook: return _slidingMoves(from, Direction.straight, piece.color);
+      case .knight: return _steppingMoves(from, KnightDirection.values, piece.color);
+      case .queen: return _slidingMoves(from, Direction.values, piece.color);
+      case .king: return _steppingMoves(from, Direction.values, piece.color);
     }
   }
 
-  List<Square> _slidingMoves(Square from, List<Offset> direction) {
-    final piece = pieceAt(from);
+  List<Square> _slidingMoves(Square from, List<Offset> direction, PieceColor moverColor) {
     final int rank = from.rank;
     final int file = from.file;
 
@@ -102,7 +102,7 @@ class Position {
       rayLoop:
       while (Square(f, r).inBound) {
         final nextPosition = Square(f, r);
-        _SquareStatus status = statusOfSquare(nextPosition, piece!.color);
+        final _SquareStatus status = statusOfSquare(nextPosition, moverColor);
         switch (status) {
           case .ally || .offBoard:
             break rayLoop;
@@ -119,8 +119,7 @@ class Position {
     return validMoves;
   }
 
-  List<Square> _steppingMoves(Square from, List<Offset> direction) {
-    final piece = pieceAt(from);
+  List<Square> _steppingMoves(Square from, List<Offset> direction, PieceColor moverColor) {
     final int rank = from.rank;
     final int file = from.file;
     List<Square> validMoves = [];
@@ -131,7 +130,7 @@ class Position {
 
       // check in board
       final coor = Square(f, r);
-      final _SquareStatus status = statusOfSquare(coor, piece!.color);
+      final _SquareStatus status = statusOfSquare(coor, moverColor);
       switch (status) {
         case .enemy || .empty:
           validMoves.add(coor);
@@ -142,6 +141,38 @@ class Position {
     return validMoves;
   }
 
+  List<Square> _pawnMoves(Square from, PieceColor moverColor) {
+    final int file = from.file;
+    final int rank = from.rank;
+
+    List<Square> validMoves = [];
+    final bool isPawnFromStartingPoint = (moverColor == .white && rank == 1) || (moverColor == .black && rank == 6);
+
+    // black moves downward from white perspective
+    final int dRank = moverColor == .black ? -1 : 1;
+    
+    // push forward
+    final Square oneStep = Square(file, rank + dRank);
+    if (statusOfSquare(oneStep, moverColor) == .empty) {
+      validMoves.add(oneStep);
+      if (isPawnFromStartingPoint) {
+        final Square twoStep = Square(file, rank + 2 * dRank);
+        if (statusOfSquare(twoStep, moverColor) == .empty) {
+          validMoves.add(twoStep);
+        }
+      }
+    }
+
+    // capture enemy
+    for (final dFile in [-1, 1]) {
+      final coor = Square(file + dFile, rank + dRank);
+      if (statusOfSquare(coor, moverColor) == .enemy) {
+        validMoves.add(coor);
+      }
+    }
+    
+    return validMoves;
+  }
 
   _SquareStatus statusOfSquare(Square square, PieceColor forColor) {
     if (!square.inBound) {
@@ -158,10 +189,6 @@ class Position {
         }
       }
     }
-  }
-
-  List<Square> _pawnMovesFrom(Square from) {
-    return []; 
   }
 }
 

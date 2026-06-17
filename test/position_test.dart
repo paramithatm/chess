@@ -385,6 +385,138 @@ void main() {
     });
   });
 
+  group('valid pawn moves', () {
+    // --- White: moves north (rank + 1), home rank is 1 ---
+
+    test('white pawn on its home rank can step one or two', () {
+      final position = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+      });
+      expect(
+        position.movesFrom(Square(4, 1)),
+        unorderedEquals([
+          Square(4, 2), // single
+          Square(4, 3), // double
+        ]),
+      );
+    });
+
+    test('white pawn off its home rank steps only one', () {
+      final position = Position.fromPieces({
+        Square(4, 3): Piece(.white, .pawn),
+      });
+      expect(
+        position.movesFrom(Square(4, 3)),
+        unorderedEquals([
+          Square(4, 4),
+        ]),
+      );
+    });
+
+    test('white pawn blocked directly ahead has no moves', () {
+      // enemy sitting right in front cannot be captured forward
+      final position = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+        Square(4, 2): Piece(.black, .pawn),
+      });
+      expect(position.movesFrom(Square(4, 1)), <Square>[]);
+    });
+
+    test('white pawn on home rank with the double-step square blocked steps only one', () {
+      final position = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+        Square(4, 3): Piece(.white, .knight), // blocks the two-square jump
+      });
+      expect(
+        position.movesFrom(Square(4, 1)),
+        unorderedEquals([
+          Square(4, 2),
+        ]),
+      );
+    });
+
+    test('white pawn captures an enemy on its diagonal', () {
+      final position = Position.fromPieces({
+        Square(4, 3): Piece(.white, .pawn),
+        Square(5, 4): Piece(.black, .bishop), // up-right diagonal
+      });
+      expect(
+        position.movesFrom(Square(4, 3)),
+        unorderedEquals([
+          Square(4, 4), // forward
+          Square(5, 4), // capture
+        ]),
+      );
+    });
+
+    test('white pawn cannot capture an ally but can capture an enemy', () {
+      final position = Position.fromPieces({
+        Square(4, 3): Piece(.white, .pawn),
+        Square(5, 4): Piece(.white, .rook), // ally on one diagonal: not a move
+        Square(3, 4): Piece(.black, .rook), // enemy on the other: capture
+      });
+      expect(
+        position.movesFrom(Square(4, 3)),
+        unorderedEquals([
+          Square(4, 4), // forward
+          Square(3, 4), // capture
+        ]),
+      );
+    });
+
+    test('white pawn on the a-file has only the one in-board diagonal', () {
+      // the off-board left diagonal must not appear (and must not crash)
+      final position = Position.fromPieces({
+        Square(0, 3): Piece(.white, .pawn),
+        Square(1, 4): Piece(.black, .knight),
+      });
+      expect(
+        position.movesFrom(Square(0, 3)),
+        unorderedEquals([
+          Square(0, 4), // forward
+          Square(1, 4), // capture
+        ]),
+      );
+    });
+
+    // --- Black: moves south (rank - 1), home rank is 6 ---
+
+    test('black pawn on its home rank can step one or two', () {
+      final position = Position.fromPieces({
+        Square(4, 6): Piece(.black, .pawn),
+      }, sideToMove: .black);
+      expect(
+        position.movesFrom(Square(4, 6)),
+        unorderedEquals([
+          Square(4, 5), // single
+          Square(4, 4), // double
+        ]),
+      );
+    });
+
+    test('black pawn captures an enemy on its (downward) diagonal', () {
+      final position = Position.fromPieces({
+        Square(4, 5): Piece(.black, .pawn),
+        Square(3, 4): Piece(.white, .bishop), // down-left diagonal
+      }, sideToMove: .black);
+      expect(
+        position.movesFrom(Square(4, 5)),
+        unorderedEquals([
+          Square(4, 4), // forward (south)
+          Square(3, 4), // capture
+        ]),
+      );
+    });
+
+    test('black pawn blocked directly ahead has no moves', () {
+      final position = Position.fromPieces({
+        Square(4, 6): Piece(.black, .pawn),
+        Square(4, 5): Piece(.white, .pawn),
+      }, sideToMove: .black);
+      expect(position.movesFrom(Square(4, 6)), <Square>[]);
+    });
+  });
+
   group('valid queen moves', () {
     test('white queen from center on an empty board', () {
       final position = Position.fromPieces({

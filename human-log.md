@@ -45,4 +45,5 @@ thought process:
 5. knight is different altogether so preparing a steppingMove
 6. king can reuse steppingMove, but logic wise it's queen, a bit weird
 7. quite a big refactor to reuse the move logic, extract status of (square), check whether empty / ally / enemy / invalid
-8. 
+8. rewrite direction into abstraction offset, so knightdirection can be used for stepping func param
+9. 
