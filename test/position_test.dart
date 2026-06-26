@@ -1,3 +1,4 @@
+import 'package:chess/engine/move.dart';
 import 'package:chess/engine/piece.dart';
 import 'package:chess/engine/position.dart';
 import 'package:chess/engine/square.dart';
@@ -597,6 +598,46 @@ void main() {
           Square(2, 2),
         ]),
       );
+    });
+  });
+
+  group('applyMove', () {
+    test('moves the piece and flips the turn', () {
+      final before = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+      });
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 3)));
+
+      expect(after.pieceAt(Square(4, 1)), null);                 // from cleared
+      expect(after.pieceAt(Square(4, 3)), Piece(.white, .pawn)); // to filled
+      expect(after.sideToMove, PieceColor.black);                // turn flipped
+    });
+
+    test('does not mutate the original position', () {
+      final before = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+      });
+
+      before.applyMove(Move(Square(4, 1), Square(4, 3))); // apply, ignore the result
+
+      // the original snapshot must be untouched (this is what the deep copy buys us)
+      expect(before.pieceAt(Square(4, 1)), Piece(.white, .pawn)); // pawn still home
+      expect(before.pieceAt(Square(4, 3)), null);                 // never moved
+      expect(before.sideToMove, PieceColor.white);                // still white's turn
+    });
+
+    test('a capture replaces the enemy piece', () {
+      final before = Position.fromPieces({
+        Square(4, 3): Piece(.white, .rook),
+        Square(4, 6): Piece(.black, .pawn),
+      });
+      final after = before.applyMove(Move(Square(4, 3), Square(4, 6)));
+
+      expect(after.pieceAt(Square(4, 6)), Piece(.white, .rook)); // rook took the square
+      expect(after.pieceAt(Square(4, 3)), null);
+
+      // and the captured piece is still recoverable from the before-snapshot
+      expect(before.pieceAt(Square(4, 6)), Piece(.black, .pawn));
     });
   });
 }
