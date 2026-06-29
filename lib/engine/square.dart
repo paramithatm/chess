@@ -29,4 +29,12 @@ class Square {
 
   // ensure coordinate in board
   bool get inBound => file >= 0 && file < boardSize && rank >= 0 && rank < boardSize;
+
+  // list of all possible square position in board (8x8)
+  static final List<Square> allSquares = [
+    for (int rank = 0; rank < boardSize; rank++)
+      for (int file = 0; file < boardSize; file++)
+        Square(file, rank),
+  ];
+
 }

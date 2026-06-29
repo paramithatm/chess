@@ -1,4 +1,5 @@
 import 'package:chess/engine/direction.dart';
+import 'package:chess/engine/move.dart';
 import 'package:chess/engine/piece.dart';
 import 'package:chess/engine/position.dart';
 import 'package:chess/engine/square.dart';
@@ -118,6 +119,23 @@ extension MoveGeneration on Position {
     return validMoves;
   }
 
+  // valid move + is king on check
+  List<Square> legalMovesFrom(Square from) {
+    final List<Square> legalMoves = [];
+    final currentPieceColor = pieceAt(from)?.color;
+
+    if (currentPieceColor == null) { return legalMoves; }
+
+    for (final moveTo in movesFrom(from)) {
+      final newPosition = applyMove(Move(from, moveTo));
+      if (!newPosition.isChecked(currentPieceColor)) {
+        legalMoves.add(moveTo);
+      }
+    }
+    return legalMoves;
+  }
+
+  // MARK: Helper
   _SquareStatus _statusOfSquare(Square square, PieceColor forColor) {
     if (!square.inBound) {
       return .offBoard;
@@ -133,5 +151,67 @@ extension MoveGeneration on Position {
         }
       }
     }
+  }
+
+  // MARK: Attack
+  bool isAttacked(Square target, PieceColor attackerColor) {
+    // TODO: pawn attacks empty square is not handled yet. (castling, en passant, etc)
+
+    for (final squareToCheck in Square.allSquares) {
+      final piece = pieceAt(squareToCheck);
+
+      if (piece == null) {
+        // there's no move coming from here, can skip
+        continue;
+      }
+
+      if (attackerColor == piece.color) {
+        if (movesFrom(squareToCheck).contains(target)) {
+          // if any move contains the square, it is attacked. (though we don't track who attacks rn)
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  Square findKing(PieceColor color) {
+    for (final square in Square.allSquares) {
+      if (pieceAt(square) == Piece(color, .king)) {
+        return square;
+      }
+    }
+
+    throw StateError("🚨 Error: ${color.toString()} king not found in board");
+  }
+
+  bool isChecked(PieceColor kingColor) {
+    final kingPosition = findKing(kingColor);
+
+    // is king attacked?
+    return isAttacked(kingPosition, kingColor.opposite);
+  }
+  
+  bool _hasNoLegalMoves(PieceColor color) {
+    bool noLegalMoves = true;
+    for (final square in Square.allSquares) {
+      // skip enemy pieces
+      if (pieceAt(square)?.color != color) continue;
+
+      if (legalMovesFrom(square).isNotEmpty) {
+        // if there's even one that's not empty
+        noLegalMoves = false;
+        break;
+      }
+    }
+    return noLegalMoves;
+  }
+
+  bool isCheckMate(PieceColor kingColor) {
+    return isChecked(kingColor) && _hasNoLegalMoves(kingColor);
+  }
+
+  bool isStaleMate(PieceColor kingColor) {
+    return !isChecked(kingColor) && _hasNoLegalMoves(kingColor);
   }
 }
