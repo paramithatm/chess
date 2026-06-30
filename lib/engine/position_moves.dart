@@ -1,3 +1,4 @@
+import 'package:chess/engine/castling.dart';
 import 'package:chess/engine/direction.dart';
 import 'package:chess/engine/move.dart';
 import 'package:chess/engine/piece.dart';
@@ -132,7 +133,63 @@ extension MoveGeneration on Position {
         legalMoves.add(moveTo);
       }
     }
+
+    legalMoves.addAll(castlingMovesFrom(from));
+
     return legalMoves;
+  }
+
+  // MARK: Castling
+  Square? castlingChecks(CastlingStatus side) {
+    // if not allowed, don't castle
+    if (!castlingRight.contains(side)) { return null; }
+
+    // additional check for freely generated board
+    // each color king should be on its home position
+    if (pieceAt(Square(4,0)) != Piece(.white, .king) && side.color == .white) { return null; }
+    if (pieceAt(Square(4,7)) != Piece(.black, .king) && side.color == .black) { return null; }
+
+    // castling rules: square in between must be empty & not under attack
+    for (final sq in side.mustBeEmpty) {
+      if (pieceAt(sq) != null) {
+        return null;
+      }
+    }
+
+    for (final sq in side.mustBeUnattacked) {
+      if (isAttacked(sq, side.color.opposite)) {
+        return null;
+      }
+    }
+
+    // king must not be in check
+    if (isChecked(side.color)) { return null; }
+
+    return side.kingMoveTo;
+  }
+
+  List<Square> castlingMovesFrom(Square from) {
+    final List<Square?> moves = [];
+    final pieceToMove = pieceAt(from);
+
+    if (pieceToMove == null) { return []; }
+
+
+    if (pieceToMove.type == .king) {
+      if (pieceToMove.color == .white) {
+        final move = castlingRight
+          .where((side) => side.color == .white)
+          .map((side) => castlingChecks(side));
+        moves.addAll(move);
+      } else {
+        final move = castlingRight
+          .where((side) => side.color == .black)
+          .map((side) => castlingChecks(side));
+        moves.addAll(move);
+      }
+    }
+
+    return moves.whereType<Square>().toList();
   }
 
   // MARK: Helper

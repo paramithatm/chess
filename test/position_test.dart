@@ -994,4 +994,118 @@ void main() {
       expect(before.castlingRight, unorderedEquals(CastlingStatus.values));
     });
   });
+
+  group('castling move generation', () {
+    // castling surfaces in legalMovesFrom(kingSquare) as the king's 2-square
+    // destination: g-file (file 6) = kingside, c-file (file 2) = queenside.
+
+    test('white can castle kingside', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), contains(Square(6, 0)));
+    });
+
+    test('white can castle queenside', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(0, 0): Piece(.white, .rook),
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), contains(Square(2, 0)));
+    });
+
+    test('black can castle kingside', () {
+      final position = Position.fromPieces({
+        Square(4, 7): Piece(.black, .king),
+        Square(7, 7): Piece(.black, .rook),
+      }, sideToMove: .black);
+      expect(position.legalMovesFrom(Square(4, 7)), contains(Square(6, 7)));
+    });
+
+    test('black can castle queenside', () {
+      final position = Position.fromPieces({
+        Square(4, 7): Piece(.black, .king),
+        Square(0, 7): Piece(.black, .rook),
+      }, sideToMove: .black);
+      expect(position.legalMovesFrom(Square(4, 7)), contains(Square(2, 7)));
+    });
+
+    test('cannot castle without the right', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+      }, castlingRight: []);
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0))));
+    });
+
+    test('cannot castle when a square between is occupied', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+        Square(5, 0): Piece(.white, .bishop), // f1 blocked
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0))));
+    });
+
+    test('cannot castle out of check', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+        Square(4, 7): Piece(.black, .rook), // checks the king down the e-file
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0))));
+    });
+
+    test('cannot castle through an attacked square', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+        Square(5, 7): Piece(.black, .rook), // attacks f1, the square the king crosses
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0))));
+    });
+
+    test('cannot castle into an attacked square', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+        Square(6, 7): Piece(.black, .rook), // attacks g1, the king's landing square
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0))));
+    });
+
+    test('queenside: a piece on b1 blocks castling', () {
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(0, 0): Piece(.white, .rook),
+        Square(1, 0): Piece(.white, .knight), // b1 occupied — rook can't pass
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(2, 0))));
+    });
+
+    test('queenside: an attacked-but-empty b1 does NOT block castling', () {
+      // b1 only needs to be empty, not safe; an enemy attacking it is fine.
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(0, 0): Piece(.white, .rook),
+        Square(1, 7): Piece(.black, .rook), // b8 attacks down the b-file to b1 only
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), contains(Square(2, 0)));
+    });
+
+    test('a king off its home square gets no castling, even with rights', () {
+      // white king+rook home (white could castle); black king has wandered;
+      // it is black's turn — black must get no phantom castle moves.
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king), // e1
+        Square(7, 0): Piece(.white, .rook), // h1
+        Square(3, 4): Piece(.black, .king), // d5 — not home
+      }, sideToMove: .black);
+
+      expect(position.legalMovesFrom(Square(3, 4)), isNot(contains(Square(6, 7)))); // no g8
+      expect(position.legalMovesFrom(Square(3, 4)), isNot(contains(Square(2, 7)))); // no c8
+      expect(position.legalMovesFrom(Square(4, 0)), contains(Square(6, 0)));        // white still can
+    });
+  });
 }
