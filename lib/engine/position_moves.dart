@@ -146,8 +146,10 @@ extension MoveGeneration on Position {
 
     // additional check for freely generated board
     // each color king should be on its home position
-    if (pieceAt(Square(4,0)) != Piece(.white, .king) && side.color == .white) { return null; }
-    if (pieceAt(Square(4,7)) != Piece(.black, .king) && side.color == .black) { return null; }
+    if (pieceAt(side.color == .white ? .whiteKingOrigin : .blackKingOrigin) != Piece(side.color, .king)) { return null; }
+
+    // check for rook in home square, especially if captured
+    if (pieceAt(side.rookHomeSquare) != Piece(side.color, .rook)) { return null; }
 
     // castling rules: square in between must be empty & not under attack
     for (final sq in side.mustBeEmpty) {

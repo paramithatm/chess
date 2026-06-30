@@ -7,6 +7,9 @@
 class Square {
   static const int boardSize = 8;
 
+  static const Square whiteKingOrigin = Square(4,0);
+  static const Square blackKingOrigin = Square(4,7);
+
   final int file; // a-h
   final int rank; // 1-8
 

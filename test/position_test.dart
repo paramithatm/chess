@@ -1107,5 +1107,70 @@ void main() {
       expect(position.legalMovesFrom(Square(3, 4)), isNot(contains(Square(2, 7)))); // no c8
       expect(position.legalMovesFrom(Square(4, 0)), contains(Square(6, 0)));        // white still can
     });
+
+    test('cannot castle when the rook is missing (e.g. captured)', () {
+      // king home and right still held, but no rook to castle with.
+      final position = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        // no rooks on a1 / h1
+      });
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(6, 0)))); // no kingside
+      expect(position.legalMovesFrom(Square(4, 0)), isNot(contains(Square(2, 0)))); // no queenside
+    });
+  });
+
+  group('applyMove castling', () {
+    test('white kingside moves both king and rook', () {
+      final before = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook),
+      });
+      final after = before.applyMove(Move(Square(4, 0), Square(6, 0))); // e1 -> g1
+
+      expect(after.pieceAt(Square(6, 0)), Piece(.white, .king)); // king on g1
+      expect(after.pieceAt(Square(5, 0)), Piece(.white, .rook)); // rook hopped to f1
+      expect(after.pieceAt(Square(4, 0)), null);                 // e1 empty
+      expect(after.pieceAt(Square(7, 0)), null);                 // h1 empty
+      expect(after.sideToMove, PieceColor.black);
+    });
+
+    test('white queenside moves both king and rook', () {
+      final before = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(0, 0): Piece(.white, .rook),
+      });
+      final after = before.applyMove(Move(Square(4, 0), Square(2, 0))); // e1 -> c1
+
+      expect(after.pieceAt(Square(2, 0)), Piece(.white, .king)); // king on c1
+      expect(after.pieceAt(Square(3, 0)), Piece(.white, .rook)); // rook to d1
+      expect(after.pieceAt(Square(4, 0)), null);                 // e1 empty
+      expect(after.pieceAt(Square(0, 0)), null);                 // a1 empty
+    });
+
+    test('black kingside moves both king and rook', () {
+      final before = Position.fromPieces({
+        Square(4, 7): Piece(.black, .king),
+        Square(7, 7): Piece(.black, .rook),
+      }, sideToMove: .black);
+      final after = before.applyMove(Move(Square(4, 7), Square(6, 7))); // e8 -> g8
+
+      expect(after.pieceAt(Square(6, 7)), Piece(.black, .king)); // king on g8
+      expect(after.pieceAt(Square(5, 7)), Piece(.black, .rook)); // rook to f8
+      expect(after.pieceAt(Square(4, 7)), null);
+      expect(after.pieceAt(Square(7, 7)), null);
+    });
+
+    test('black queenside moves both king and rook', () {
+      final before = Position.fromPieces({
+        Square(4, 7): Piece(.black, .king),
+        Square(0, 7): Piece(.black, .rook),
+      }, sideToMove: .black);
+      final after = before.applyMove(Move(Square(4, 7), Square(2, 7))); // e8 -> c8
+
+      expect(after.pieceAt(Square(2, 7)), Piece(.black, .king)); // king on c8
+      expect(after.pieceAt(Square(3, 7)), Piece(.black, .rook)); // rook to d8
+      expect(after.pieceAt(Square(4, 7)), null);
+      expect(after.pieceAt(Square(0, 7)), null);
+    });
   });
 }

@@ -73,22 +73,27 @@ class Position {
     return row.toString();
   }
 
+  // move piece from -> to, without the chess rules
+  static void _movePiece(List<List<Piece?>> board, Piece? piece, Move move) {
+    // clear from prev position
+    _put(board, null, move.from);
+    // put piece to new position
+    _put(board, piece, move.to);
+  }
+
   Position applyMove(Move move) {
     final newBoard = [for (final row in _board) [...row]];
     final pieceToMove = pieceAt(move.from);
-
     Set<CastlingStatus> newCastlingRight = castlingRight.toSet();
-    // clear from prev position
-    _put(newBoard, null, move.from);
-    // put piece to new position
-    _put(newBoard, pieceToMove, move.to);
 
-    // shouldn't happen, but just to bypass optional piece
+    // optional check
     if (pieceToMove == null) {
       return Position(newBoard, sideToMove, newCastlingRight);
     }
+
+    _movePiece(newBoard, pieceToMove, move);
     
-    // check castling rights
+    // update castling rights
     if (pieceToMove.type == .king) {
       if (pieceToMove.color == .white) {
         newCastlingRight.remove(CastlingStatus.whiteKingSide);
@@ -99,7 +104,7 @@ class Position {
       }
     }
 
-    // rook castling rights
+    // update rook castling rights
     if (pieceToMove.type == .rook) {
       if (move.from.file == 0) {
         newCastlingRight.remove(pieceToMove.color == .white ? CastlingStatus.whiteQueenSide : CastlingStatus.blackQueenSide);
@@ -108,6 +113,13 @@ class Position {
       }
     }
 
+    // if it's a castling move -> also move the rook
+    if (pieceToMove.type == .king && (move.from.file - move.to.file).abs() == 2) {
+      // find which side castle
+      final castle = CastlingStatus.values.firstWhere((c) => c.kingMoveTo == move.to);
+      _movePiece(newBoard, Piece(pieceToMove.color, .rook), castle.rookMoves);
+    }
+    
     // flip turn
     return Position(newBoard, sideToMove.opposite, newCastlingRight);
   }
