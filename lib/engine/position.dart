@@ -13,7 +13,10 @@ export 'package:chess/engine/position_moves.dart';
 class Position {
   final List<List<Piece?>> _board;
   final PieceColor sideToMove;
+
+  // special moves
   final Set<CastlingStatus> castlingRight;
+  final Square? enPassantTarget;
 
   // check what's on coordinate square. also flip the file-rank coordinate system for board to read
   Piece? pieceAt(Square square) => _board[square.rank][square.file];
@@ -26,13 +29,13 @@ class Position {
   static List<List<Piece?>> get _emptyBoard => List.generate(8, (_) => List<Piece?>.filled(8, null));
 
   // draw position from piece list. flip the file-rank from square to draw board.
-  factory Position.fromPieces(Map<Square, Piece> pieces, { PieceColor sideToMove = PieceColor.white, List<CastlingStatus> castlingRight = CastlingStatus.values }) {
+  factory Position.fromPieces(Map<Square, Piece> pieces, { PieceColor sideToMove = PieceColor.white, List<CastlingStatus> castlingRight = CastlingStatus.values, Square? enPassantTarget }) {
     final board = _emptyBoard;
     pieces.forEach((square, piece) => _put(board, piece, square));
-    return Position(board, sideToMove, castlingRight.toSet());
+    return Position(board, sideToMove, castlingRight.toSet(), enPassantTarget);
   }
 
-  Position(this._board, this.sideToMove, this.castlingRight);
+  Position(this._board, this.sideToMove, this.castlingRight, this.enPassantTarget);
 
   // named constructor
   factory Position.initial() {
@@ -57,7 +60,7 @@ class Position {
     final Set<CastlingStatus> castlingRight = CastlingStatus.values.toSet();
 
     // game always start with white
-    return Position(board, .white, castlingRight);
+    return Position(board, .white, castlingRight, null);
   }
 
   // helper to print board state
@@ -85,10 +88,11 @@ class Position {
     final newBoard = [for (final row in _board) [...row]];
     final pieceToMove = pieceAt(move.from);
     Set<CastlingStatus> newCastlingRight = castlingRight.toSet();
+    Square? newEnPassantTarget;
 
     // optional check
     if (pieceToMove == null) {
-      return Position(newBoard, sideToMove, newCastlingRight);
+      return Position(newBoard, sideToMove, newCastlingRight, null);
     }
 
     _movePiece(newBoard, pieceToMove, move);
@@ -119,8 +123,24 @@ class Position {
       final castle = CastlingStatus.values.firstWhere((c) => c.kingMoveTo == move.to);
       _movePiece(newBoard, Piece(pieceToMove.color, .rook), castle.rookMoves);
     }
-    
+
+    final dRank = pieceToMove.color == .white ? -1 : 1;
+    // after 2 step, save en passant location    
+    if (pieceToMove.type == .pawn && (move.to.rank - move.from.rank).abs() == 2) {
+      newEnPassantTarget = Square(move.to.file, move.to.rank + dRank);
+    } else {
+      // reset if it's moves other than pawn first step
+      newEnPassantTarget = null;
+    }
+
+    // check if it's en passant move
+    if (move.to == enPassantTarget) {
+      // remove captured pawn
+      _put(newBoard, null, Square(move.to.file, move.to.rank + dRank));
+      newEnPassantTarget = null;
+    }
+
     // flip turn
-    return Position(newBoard, sideToMove.opposite, newCastlingRight);
+    return Position(newBoard, sideToMove.opposite, newCastlingRight, newEnPassantTarget);
   }
 }

@@ -1173,4 +1173,92 @@ void main() {
       expect(after.pieceAt(Square(0, 7)), null);
     });
   });
+
+  group('en passant', () {
+    test('a pawn double-step sets the en passant target', () {
+      final before = Position.fromPieces({Square(4, 1): Piece(.white, .pawn)});
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 3))); // e2 -> e4
+      expect(after.enPassantTarget, Square(4, 2)); // e3, the skipped square
+    });
+
+    test('a single-step move sets no en passant target', () {
+      final before = Position.fromPieces({Square(4, 1): Piece(.white, .pawn)});
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 2))); // e2 -> e3
+      expect(after.enPassantTarget, null);
+    });
+
+    test('the en passant target is cleared by the following move', () {
+      final start = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn), // e2
+        Square(0, 6): Piece(.black, .pawn), // a7, gives black a reply
+      });
+      final afterDouble = start.applyMove(Move(Square(4, 1), Square(4, 3))); // e2 -> e4
+      final afterReply = afterDouble.applyMove(Move(Square(0, 6), Square(0, 5))); // a7 -> a6
+      expect(afterReply.enPassantTarget, null); // window closed
+    });
+
+    test('an adjacent pawn may capture en passant', () {
+      final start = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn), // e2
+        Square(3, 3): Piece(.black, .pawn), // d4, lands beside the pawn after its double-step
+        Square(0, 0): Piece(.white, .king), // out of the way (legalMovesFrom needs kings)
+        Square(7, 7): Piece(.black, .king),
+      });
+      final afterDouble = start.applyMove(Move(Square(4, 1), Square(4, 3))); // e2 -> e4, target e3
+      // black pawn on d4 can take diagonally onto the empty e3
+      expect(afterDouble.legalMovesFrom(Square(3, 3)), contains(Square(4, 2)));
+    });
+
+    test('capturing en passant removes the captured pawn', () {
+      final start = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn), // e2
+        Square(3, 3): Piece(.black, .pawn), // d4
+      });
+      final afterDouble = start.applyMove(Move(Square(4, 1), Square(4, 3)));   // e2 -> e4
+      final afterCapture = afterDouble.applyMove(Move(Square(3, 3), Square(4, 2))); // d4 x e3 e.p.
+
+      expect(afterCapture.pieceAt(Square(4, 2)), Piece(.black, .pawn)); // black pawn now on e3
+      expect(afterCapture.pieceAt(Square(4, 3)), null);                 // captured white pawn (e4) gone
+      expect(afterCapture.pieceAt(Square(3, 3)), null);                 // black pawn left d4
+    });
+
+    test('mirror: black double-steps and white captures en passant', () {
+      final start = Position.fromPieces({
+        Square(3, 6): Piece(.black, .pawn), // d7
+        Square(4, 4): Piece(.white, .pawn), // e5
+      }, sideToMove: .black);
+      final afterDouble = start.applyMove(Move(Square(3, 6), Square(3, 4)));   // d7 -> d5, target d6
+      final afterCapture = afterDouble.applyMove(Move(Square(4, 4), Square(3, 5))); // e5 x d6 e.p.
+
+      expect(afterCapture.pieceAt(Square(3, 5)), Piece(.white, .pawn)); // white pawn on d6
+      expect(afterCapture.pieceAt(Square(3, 4)), null);                 // captured black pawn (d5) gone
+      expect(afterCapture.pieceAt(Square(4, 4)), null);                 // white pawn left e5
+    });
+
+    test('no en passant without a fresh double-step', () {
+      // pawns sit side by side, but no double-step just happened -> no target
+      final position = Position.fromPieces({
+        Square(4, 4): Piece(.white, .pawn), // e5
+        Square(3, 4): Piece(.black, .pawn), // d5
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+      });
+      expect(position.legalMovesFrom(Square(4, 4)), isNot(contains(Square(3, 5)))); // no phantom d6
+    });
+
+    test('en passant is illegal when it would expose the king (discovered check)', () {
+      // white K a5, white P b5, black R h5 all on rank 5. black plays c7-c5;
+      // b5 x c6 e.p. would clear rank 5 and leave the king in check -> not legal.
+      final start = Position.fromPieces({
+        Square(0, 4): Piece(.white, .king), // a5
+        Square(1, 4): Piece(.white, .pawn), // b5
+        Square(7, 4): Piece(.black, .rook), // h5
+        Square(2, 6): Piece(.black, .pawn), // c7
+        Square(7, 7): Piece(.black, .king), // h8, out of the way
+      }, sideToMove: .black);
+      final afterDouble = start.applyMove(Move(Square(2, 6), Square(2, 4))); // c7 -> c5, target c6
+
+      expect(afterDouble.legalMovesFrom(Square(1, 4)), isNot(contains(Square(2, 5)))); // no b5xc6 e.p.
+    });
+  });
 }

@@ -115,6 +115,9 @@ extension MoveGeneration on Position {
       if (_statusOfSquare(coor, moverColor) == .enemy) {
         validMoves.add(coor);
       }
+      if (enPassantTarget == coor) {
+        validMoves.add(coor);
+      }
     }
 
     return validMoves;
