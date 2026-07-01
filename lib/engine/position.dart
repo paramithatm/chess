@@ -84,63 +84,82 @@ class Position {
     _put(board, piece, move.to);
   }
 
+  // Apply a (legal) move and return the resulting position. Immutable: the new
+  // board is a deep copy, so `this` is never touched. Reads as a sequence of
+  // named steps; each special-move rule lives in its own helper below.
   Position applyMove(Move move) {
     final newBoard = [for (final row in _board) [...row]];
-    final pieceToMove = pieceAt(move.from);
-    Set<CastlingStatus> newCastlingRight = castlingRight.toSet();
-    Square? newEnPassantTarget;
+    final mover = pieceAt(move.from);
 
-    // optional check
-    if (pieceToMove == null) {
-      return Position(newBoard, sideToMove, newCastlingRight, null);
+    // nothing to move — hand back an untouched copy
+    if (mover == null) {
+      return Position(newBoard, sideToMove, castlingRight.toSet(), null);
     }
 
-    _movePiece(newBoard, pieceToMove, move);
-    
-    // update castling rights
-    if (pieceToMove.type == .king) {
-      if (pieceToMove.color == .white) {
-        newCastlingRight.remove(CastlingStatus.whiteKingSide);
-        newCastlingRight.remove(CastlingStatus.whiteQueenSide);
+    _movePiece(newBoard, mover, move);
+    _castleRookHop(newBoard, move, mover);
+    _removeEnPassantCapture(newBoard, move, mover);
+    _applyPromotion(newBoard, move, mover);
+
+    return Position(
+      newBoard,
+      sideToMove.opposite,
+      _nextCastlingRights(move, mover),
+      _nextEnPassantTarget(move, mover),
+    );
+  }
+
+  // The castling rights that survive this move: a king move drops both of its
+  // colour's; a rook leaving a1/h1 (a8/h8) drops that side's.
+  Set<CastlingStatus> _nextCastlingRights(Move move, Piece mover) {
+    final rights = castlingRight.toSet();
+
+    if (mover.type == .king) {
+      if (mover.color == .white) {
+        rights.remove(CastlingStatus.whiteKingSide);
+        rights.remove(CastlingStatus.whiteQueenSide);
       } else {
-        newCastlingRight.remove(CastlingStatus.blackKingSide);
-        newCastlingRight.remove(CastlingStatus.blackQueenSide);
+        rights.remove(CastlingStatus.blackKingSide);
+        rights.remove(CastlingStatus.blackQueenSide);
       }
-    }
-
-    // update rook castling rights
-    if (pieceToMove.type == .rook) {
+    } else if (mover.type == .rook) {
       if (move.from.file == 0) {
-        newCastlingRight.remove(pieceToMove.color == .white ? CastlingStatus.whiteQueenSide : CastlingStatus.blackQueenSide);
+        rights.remove(mover.color == .white ? CastlingStatus.whiteQueenSide : CastlingStatus.blackQueenSide);
       } else if (move.from.file == 7) {
-        newCastlingRight.remove(pieceToMove.color == .white ? CastlingStatus.whiteKingSide : CastlingStatus.blackKingSide);
+        rights.remove(mover.color == .white ? CastlingStatus.whiteKingSide : CastlingStatus.blackKingSide);
       }
     }
 
-    // if it's a castling move -> also move the rook
-    if (pieceToMove.type == .king && (move.from.file - move.to.file).abs() == 2) {
-      // find which side castle
-      final castle = CastlingStatus.values.firstWhere((c) => c.kingMoveTo == move.to);
-      _movePiece(newBoard, Piece(pieceToMove.color, .rook), castle.rookMoves);
-    }
+    return rights;
+  }
 
-    final dRank = pieceToMove.color == .white ? -1 : 1;
-    // after 2 step, save en passant location    
-    if (pieceToMove.type == .pawn && (move.to.rank - move.from.rank).abs() == 2) {
-      newEnPassantTarget = Square(move.to.file, move.to.rank + dRank);
-    } else {
-      // reset if it's moves other than pawn first step
-      newEnPassantTarget = null;
-    }
+  // A king moving two files is a castle; slide the matching rook across too.
+  void _castleRookHop(List<List<Piece?>> board, Move move, Piece mover) {
+    if (mover.type != .king || (move.from.file - move.to.file).abs() != 2) return;
+    final castle = CastlingStatus.values.firstWhere((c) => c.kingMoveTo == move.to);
+    _movePiece(board, Piece(mover.color, .rook), castle.rookMoves);
+  }
 
-    // check if it's en passant move
-    if (move.to == enPassantTarget) {
-      // remove captured pawn
-      _put(newBoard, null, Square(move.to.file, move.to.rank + dRank));
-      newEnPassantTarget = null;
-    }
+  // The en passant target this move creates: the square a double-stepping pawn
+  // skipped over, else null.
+  Square? _nextEnPassantTarget(Move move, Piece mover) {
+    final isDoubleStep = mover.type == .pawn && (move.to.rank - move.from.rank).abs() == 2;
+    if (!isDoubleStep) return null;
+    final dRank = mover.color == .white ? -1 : 1;
+    return Square(move.to.file, move.to.rank + dRank);
+  }
 
-    // flip turn
-    return Position(newBoard, sideToMove.opposite, newCastlingRight, newEnPassantTarget);
+  // If this move lands on the (incoming) en passant target, remove the captured
+  // pawn — it sits beside the target, not on it.
+  void _removeEnPassantCapture(List<List<Piece?>> board, Move move, Piece mover) {
+    if (move.to != enPassantTarget) return;
+    final dRank = mover.color == .white ? -1 : 1;
+    _put(board, null, Square(move.to.file, move.to.rank + dRank));
+  }
+
+  // TODO(CHESS-4.6): a pawn reaching the last rank becomes move.promoteTo.
+  // Placeholder for now — no-op, so ordinary moves are unaffected.
+  void _applyPromotion(List<List<Piece?>> board, Move move, Piece mover) {
+    // not implemented yet
   }
 }
