@@ -153,9 +153,14 @@ class Position {
     _put(board, null, Square(move.to.file, move.to.rank + dRank));
   }
 
-  // TODO(CHESS-4.6): a pawn reaching the last rank becomes move.promoteTo.
-  // Placeholder for now — no-op, so ordinary moves are unaffected.
+  // pawn at max rank should promote
   void _applyPromotion(List<List<Piece?>> board, Move move, Piece movingPiece) {
-    // not implemented yet
+    final promoteTo = move.promoteTo;
+    if (promoteTo == null) { return; }
+    if (movingPiece.type != .pawn) { return; }
+    if (movingPiece.color == .white && move.to.rank != 7) { return; }
+    if (movingPiece.color == .black && move.to.rank != 0) { return; }
+
+    _put(board, Piece(movingPiece.color, promoteTo), move.to);
   }
 }

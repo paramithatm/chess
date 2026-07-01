@@ -1261,4 +1261,46 @@ void main() {
       expect(afterDouble.legalMovesFrom(Square(1, 4)), isNot(contains(Square(2, 5)))); // no b5xc6 e.p.
     });
   });
+
+  group('promotion', () {
+    test('a white pawn reaching the last rank becomes the chosen piece', () {
+      final before = Position.fromPieces({Square(4, 6): Piece(.white, .pawn)}); // e7
+      final after = before.applyMove(Move(Square(4, 6), Square(4, 7), promoteTo: .queen)); // e7 -> e8=Q
+
+      expect(after.pieceAt(Square(4, 7)), Piece(.white, .queen)); // queen, not a pawn
+      expect(after.pieceAt(Square(4, 6)), null);                  // e7 vacated
+    });
+
+    test('underpromotion to a knight is honoured', () {
+      final before = Position.fromPieces({Square(4, 6): Piece(.white, .pawn)});
+      final after = before.applyMove(Move(Square(4, 6), Square(4, 7), promoteTo: .knight));
+
+      expect(after.pieceAt(Square(4, 7)), Piece(.white, .knight));
+    });
+
+    test('a black pawn promotes on rank 0', () {
+      final before = Position.fromPieces({Square(4, 1): Piece(.black, .pawn)}, sideToMove: .black); // e2
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 0), promoteTo: .queen)); // e2 -> e1=Q
+
+      expect(after.pieceAt(Square(4, 0)), Piece(.black, .queen)); // promoted piece keeps the pawn's colour
+    });
+
+    test('promotion by capture lands the new piece on the capture square', () {
+      final before = Position.fromPieces({
+        Square(3, 6): Piece(.white, .pawn), // d7
+        Square(4, 7): Piece(.black, .rook), // e8 enemy
+      });
+      final after = before.applyMove(Move(Square(3, 6), Square(4, 7), promoteTo: .queen)); // d7 x e8=Q
+
+      expect(after.pieceAt(Square(4, 7)), Piece(.white, .queen)); // captured the rook and promoted
+      expect(after.pieceAt(Square(3, 6)), null);
+    });
+
+    test('an ordinary move without promoteTo leaves the pawn a pawn', () {
+      final before = Position.fromPieces({Square(4, 1): Piece(.white, .pawn)}); // e2
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 2))); // e2 -> e3
+
+      expect(after.pieceAt(Square(4, 2)), Piece(.white, .pawn));
+    });
+  });
 }
