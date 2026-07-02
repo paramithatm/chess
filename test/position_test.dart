@@ -1442,4 +1442,50 @@ void main() {
       expect(position.isInsufficientMaterial(), true);
     });
   });
+
+  group('fifty-move rule', () {
+    // assumes Position exposes an int `halfMoveCounter` (default 0), settable via
+    // fromPieces, and isFiftyMove() returns true when it reaches 100.
+
+    test('a quiet move increments the halfmove clock', () {
+      final before = Position.fromPieces({
+        Square(1, 0): Piece(.white, .knight),
+      });
+      final after = before.applyMove(Move(Square(1, 0), Square(2, 2))); // Nb1-c3, no capture
+      expect(after.halfMoveCounter, 1);
+    });
+
+    test('a pawn move resets the halfmove clock', () {
+      final before = Position.fromPieces({
+        Square(4, 1): Piece(.white, .pawn),
+      }, halfMoveCounter: 40);
+      final after = before.applyMove(Move(Square(4, 1), Square(4, 2))); // e2-e3
+      expect(after.halfMoveCounter, 0);
+    });
+
+    test('a capture resets the halfmove clock', () {
+      final before = Position.fromPieces({
+        Square(0, 0): Piece(.white, .rook),
+        Square(0, 5): Piece(.black, .rook),
+      }, halfMoveCounter: 40);
+      final after = before.applyMove(Move(Square(0, 0), Square(0, 5))); // Rxa6
+      expect(after.halfMoveCounter, 0);
+    });
+
+    test('reaching 100 half-moves is a draw', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+      }, halfMoveCounter: 100);
+      expect(position.isFiftyMove(), true);
+    });
+
+    test('99 half-moves is not yet a draw', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+      }, halfMoveCounter: 99);
+      expect(position.isFiftyMove(), false);
+    });
+  });
 }

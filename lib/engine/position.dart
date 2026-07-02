@@ -126,15 +126,25 @@ class Position {
     _moveCastlingRook(newBoard, move, movingPiece);
     _removeEnPassantCapture(newBoard, move, movingPiece);
     _applyPromotion(newBoard, move, movingPiece);
+    final halfMove = _updateHalfMoveCounter(newBoard, move, movingPiece);
 
     return Position(
       board: newBoard,
       sideToMove: sideToMove.opposite,
       castlingRight: _nextCastlingRights(move, movingPiece),
       enPassantTarget: _nextEnPassantTarget(move, movingPiece),
-      halfMoveCounter: halfMoveCounter,
+      halfMoveCounter: halfMove,
       fullMoveCounter: fullMoveCounter,
     );
+  }
+
+  int _updateHalfMoveCounter(List<List<Piece?>> board, Move move, Piece movingPiece) {
+    // pawn move reset counter
+    if (movingPiece.type == .pawn) { return 0; }
+    // capture reset counter
+    if (pieceAt(move.to) != null) { return 0; }
+    
+    return halfMoveCounter + 1;
   }
 
   // The castling rights that survive this move: a king move drops both of its

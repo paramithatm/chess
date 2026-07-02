@@ -313,6 +313,6 @@ extension MoveGeneration on Position {
   }
 
   bool isFiftyMove() {
-    return false;
+    return halfMoveCounter == 100;
   }
 }
