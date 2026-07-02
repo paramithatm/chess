@@ -1303,4 +1303,143 @@ void main() {
       expect(after.pieceAt(Square(4, 2)), Piece(.white, .pawn));
     });
   });
+
+  group('insufficient material', () {
+    // --- draws: mate is impossible ---
+
+    test('king vs king is a draw', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    test('king and bishop vs king is a draw', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop),
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    test('king and knight vs king is a draw', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(1, 0): Piece(.white, .knight),
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    test('the lone minor piece may belong to either side', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(6, 7): Piece(.black, .knight), // black's knight
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    test('same-coloured bishops on each side is a draw', () {
+      // c1 (2+0=2, even) and f8 (5+7=12, even) are both dark squares
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop),
+        Square(5, 7): Piece(.black, .bishop),
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    // --- not draws: mate is possible ---
+
+    test('opposite-coloured bishops is NOT insufficient', () {
+      // c1 (even, dark) vs c8 (2+7=9, odd, light)
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop),
+        Square(2, 7): Piece(.black, .bishop),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('two knights vs king is NOT insufficient (mate is possible)', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(1, 0): Piece(.white, .knight),
+        Square(6, 0): Piece(.white, .knight),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('a queen is sufficient', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(3, 0): Piece(.white, .queen),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('a rook is sufficient', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(3, 0): Piece(.white, .rook),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('a pawn is sufficient (it can promote)', () {
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(3, 1): Piece(.white, .pawn),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('the initial position is not a draw', () {
+      expect(Position.initial().isInsufficientMaterial(), false);
+    });
+
+    test('two same-coloured bishops (one side) vs king is a draw', () {
+      // c1 (2+0=2) and e1 (4+0=4) are both dark — neither can touch a light square
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop),
+        Square(4, 0): Piece(.white, .bishop),
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+
+    test('two opposite-coloured bishops (one side) vs king is NOT a draw', () {
+      // c1 (2, dark) and f1 (5, light) cover both colours -> mate is possible
+      final position = Position.fromPieces({
+        Square(0, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop),
+        Square(5, 0): Piece(.white, .bishop),
+      });
+      expect(position.isInsufficientMaterial(), false);
+    });
+
+    test('three same-coloured bishops vs king is a draw', () {
+      // reachable via promotion; c1/e1/a3 are all dark, so a light square is
+      // still untouchable -> mate impossible.
+      final position = Position.fromPieces({
+        Square(7, 0): Piece(.white, .king),
+        Square(7, 7): Piece(.black, .king),
+        Square(2, 0): Piece(.white, .bishop), // c1, dark
+        Square(4, 0): Piece(.white, .bishop), // e1, dark
+        Square(0, 2): Piece(.white, .bishop), // a3, dark
+      });
+      expect(position.isInsufficientMaterial(), true);
+    });
+  });
 }

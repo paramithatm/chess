@@ -276,4 +276,39 @@ extension MoveGeneration on Position {
   bool isStaleMate(PieceColor kingColor) {
     return !isChecked(kingColor) && _hasNoLegalMoves(kingColor);
   }
+
+  // need to check which pieces are still in board
+  // cases where it's insufficient:
+  // King vs King
+  // King + Bishop vs King
+  // King + Knight vs King
+  // King + Bishop vs King + Bishop, both bishops on the same colour
+  bool isInsufficientMaterial() {
+    // non king square-piece list
+     final filtered = <({ Square at, Piece piece})>[
+      for (final sq in Square.allSquares)
+        // non king piece
+        if (pieceAt(sq) case final piece? when piece.type != .king) // piece? -> null filter
+          (at: sq, piece: piece),
+    ];
+    
+    // only king, draw
+    if (filtered.isEmpty) {
+      return true;
+    }
+    else if (filtered.length == 1) {
+      final pieceType = filtered.first.piece.type;
+      // Kkb / Kkn
+      if (pieceType == .knight || pieceType == .bishop) { return true; }
+    } else if (filtered.every((i) => i.piece.type == .bishop)) {
+      // all bishop
+      final tileColor = (filtered.first.at.file + filtered.first.at.rank) % 2;
+      // all same colored
+      if (filtered.every((i) => (i.at.file + i.at.rank) % 2 == tileColor)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
 }
