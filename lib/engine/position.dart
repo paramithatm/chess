@@ -18,6 +18,10 @@ class Position {
   final Set<CastlingStatus> castlingRight;
   final Square? enPassantTarget;
 
+  // game counter
+  final int halfMoveCounter;
+  final int fullMoveCounter;
+
   // check what's on coordinate square. also flip the file-rank coordinate system for board to read
   Piece? pieceAt(Square square) => _board[square.rank][square.file];
 
@@ -29,13 +33,21 @@ class Position {
   static List<List<Piece?>> get _emptyBoard => List.generate(8, (_) => List<Piece?>.filled(8, null));
 
   // draw position from piece list. flip the file-rank from square to draw board.
-  factory Position.fromPieces(Map<Square, Piece> pieces, { PieceColor sideToMove = PieceColor.white, List<CastlingStatus> castlingRight = CastlingStatus.values, Square? enPassantTarget }) {
+  factory Position.fromPieces(Map<Square, Piece> pieces, { PieceColor sideToMove = PieceColor.white, List<CastlingStatus> castlingRight = CastlingStatus.values, Square? enPassantTarget, int halfMoveCounter = 0, int fullMoveCounter = 0 }) {
     final board = _emptyBoard;
     pieces.forEach((square, piece) => _put(board, piece, square));
-    return Position(board, sideToMove, castlingRight.toSet(), enPassantTarget);
+    return Position(board: board, sideToMove: sideToMove, castlingRight: castlingRight.toSet(), enPassantTarget: enPassantTarget, halfMoveCounter: halfMoveCounter, fullMoveCounter: fullMoveCounter);
   }
 
-  Position(this._board, this.sideToMove, this.castlingRight, this.enPassantTarget);
+  Position({
+    required this._board,
+    required this.sideToMove,
+    required this.castlingRight,
+    this.enPassantTarget, // nullable → defaults to null on its own
+    this.halfMoveCounter = 0,
+    this.fullMoveCounter = 0,
+  });
+
 
   // named constructor
   factory Position.initial() {
@@ -60,7 +72,14 @@ class Position {
     final Set<CastlingStatus> castlingRight = CastlingStatus.values.toSet();
 
     // game always start with white
-    return Position(board, .white, castlingRight, null);
+    return Position(
+      board: board,
+      sideToMove: .white,
+      castlingRight: castlingRight,
+      enPassantTarget: null,
+      halfMoveCounter: 0,
+      fullMoveCounter: 0,
+    );
   }
 
   // helper to print board state
@@ -93,7 +112,14 @@ class Position {
 
     // nothing to move — return untouched copy
     if (movingPiece == null) {
-      return Position(newBoard, sideToMove, castlingRight.toSet(), null);
+      return Position(
+        board: newBoard,
+        sideToMove: sideToMove,
+        castlingRight: castlingRight.toSet(),
+        enPassantTarget: null,
+        halfMoveCounter: halfMoveCounter,
+        fullMoveCounter: fullMoveCounter,
+      );
     }
 
     _movePiece(newBoard, movingPiece, move);
@@ -102,10 +128,12 @@ class Position {
     _applyPromotion(newBoard, move, movingPiece);
 
     return Position(
-      newBoard,
-      sideToMove.opposite,
-      _nextCastlingRights(move, movingPiece),
-      _nextEnPassantTarget(move, movingPiece),
+      board: newBoard,
+      sideToMove: sideToMove.opposite,
+      castlingRight: _nextCastlingRights(move, movingPiece),
+      enPassantTarget: _nextEnPassantTarget(move, movingPiece),
+      halfMoveCounter: halfMoveCounter,
+      fullMoveCounter: fullMoveCounter,
     );
   }
 

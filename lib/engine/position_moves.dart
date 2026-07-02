@@ -311,4 +311,8 @@ extension MoveGeneration on Position {
     
     return false;
   }
+
+  bool isFiftyMove() {
+    return false;
+  }
 }
