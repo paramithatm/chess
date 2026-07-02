@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: run the engine test suite; block the commit if anything fails.
+# Bypass (when you really mean to commit red, e.g. WIP): git commit --no-verify
+#
+# This hook is version-controlled. To activate it after cloning, run once:
+#   git config core.hooksPath .githooks
+
+echo "▶ pre-commit: running dart test…"
+if dart test; then
+  echo "✔ tests green — proceeding with commit"
+  exit 0
+else
+  echo "✘ tests failed — commit aborted (bypass with: git commit --no-verify)"
+  exit 1
+fi
