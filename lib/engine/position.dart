@@ -22,6 +22,16 @@ class Position {
   final int halfMoveCounter;
   final int fullMoveCounter;
 
+  @override
+  bool operator ==(Object other) => other is Position &&
+  other._board == _board &&
+  other.sideToMove == sideToMove &&
+  other.castlingRight == castlingRight &&
+  other.enPassantTarget == enPassantTarget &&
+  other.halfMoveCounter == halfMoveCounter &&
+  other.fullMoveCounter == fullMoveCounter;
+
+  // MARK: Method
   // check what's on coordinate square. also flip the file-rank coordinate system for board to read
   Piece? pieceAt(Square square) => _board[square.rank][square.file];
 
@@ -157,13 +167,10 @@ class Position {
       } else {
         rights.removeAll([CastlingStatus.blackKingSide, CastlingStatus.blackQueenSide]);
       }
-    } else if (movingPiece.type == .rook) {
-      if (move.from.file == 0) {
-        rights.remove(movingPiece.color == .white ? CastlingStatus.whiteQueenSide : CastlingStatus.blackQueenSide);
-      } else if (move.from.file == 7) {
-        rights.remove(movingPiece.color == .white ? CastlingStatus.whiteKingSide : CastlingStatus.blackKingSide);
-      }
     }
+
+    // remove if rook captured (move.to) / move.from its home square
+    rights.removeWhere((c) => c.rookHomeSquare == move.to || c.rookHomeSquare == move.from);
 
     return rights;
   }

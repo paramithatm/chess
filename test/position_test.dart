@@ -993,6 +993,18 @@ void main() {
       // the original must still hold all four rights
       expect(before.castlingRight, unorderedEquals(CastlingStatus.values));
     });
+
+    test('capturing a rook on its home square drops that castling right', () {
+      // black rook takes the white h1 rook -> white loses kingside castling,
+      // even though the piece that moved was the (black) capturer, not the rook.
+      final before = Position.fromPieces({
+        Square(4, 0): Piece(.white, .king),
+        Square(7, 0): Piece(.white, .rook), // h1
+        Square(7, 7): Piece(.black, .rook), // h8, captures down the file
+      }, sideToMove: .black);
+      final after = before.applyMove(Move(Square(7, 7), Square(7, 0))); // Rh8 x h1
+      expect(after.castlingRight.contains(CastlingStatus.whiteKingSide), false);
+    });
   });
 
   group('castling move generation', () {
