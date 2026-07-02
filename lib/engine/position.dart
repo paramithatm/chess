@@ -126,14 +126,13 @@ class Position {
     _moveCastlingRook(newBoard, move, movingPiece);
     _removeEnPassantCapture(newBoard, move, movingPiece);
     _applyPromotion(newBoard, move, movingPiece);
-    final halfMove = _updateHalfMoveCounter(newBoard, move, movingPiece);
 
     return Position(
       board: newBoard,
       sideToMove: sideToMove.opposite,
-      castlingRight: _nextCastlingRights(move, movingPiece),
-      enPassantTarget: _nextEnPassantTarget(move, movingPiece),
-      halfMoveCounter: halfMove,
+      castlingRight: _updateCastlingRights(move, movingPiece),
+      enPassantTarget: _updateEnPassantTarget(move, movingPiece),
+      halfMoveCounter: _updateHalfMoveCounter(newBoard, move, movingPiece),
       fullMoveCounter: fullMoveCounter,
     );
   }
@@ -143,13 +142,13 @@ class Position {
     if (movingPiece.type == .pawn) { return 0; }
     // capture reset counter
     if (pieceAt(move.to) != null) { return 0; }
-    
+
     return halfMoveCounter + 1;
   }
 
   // The castling rights that survive this move: a king move drops both of its
   // colour's; a rook leaving a1/h1 (a8/h8) drops that side's.
-  Set<CastlingStatus> _nextCastlingRights(Move move, Piece movingPiece) {
+  Set<CastlingStatus> _updateCastlingRights(Move move, Piece movingPiece) {
     final rights = castlingRight.toSet();
 
     if (movingPiece.type == .king) {
@@ -177,7 +176,7 @@ class Position {
   }
 
   // After double step, enemy can en passant. otherwise, make it null (not allowed)
-  Square? _nextEnPassantTarget(Move move, Piece movingPiece) {
+  Square? _updateEnPassantTarget(Move move, Piece movingPiece) {
     final isDoubleStep = movingPiece.type == .pawn && (move.to.rank - move.from.rank).abs() == 2;
     if (!isDoubleStep) return null;
     final dRank = movingPiece.color == .white ? -1 : 1;

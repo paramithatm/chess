@@ -1487,5 +1487,23 @@ void main() {
       }, halfMoveCounter: 99);
       expect(position.isFiftyMove(), false);
     });
+
+    test('an en passant capture resets the halfmove clock', () {
+      // e5 x d6 e.p. — a pawn move, so it must reset even from a high count
+      final position = Position.fromPieces({
+        Square(4, 4): Piece(.white, .pawn), // e5
+        Square(3, 4): Piece(.black, .pawn), // d5 (as if it just double-stepped)
+      }, enPassantTarget: Square(3, 5), halfMoveCounter: 40);
+      final after = position.applyMove(Move(Square(4, 4), Square(3, 5))); // e5 x d6 e.p.
+      expect(after.halfMoveCounter, 0);
+    });
+
+    test('a promotion resets the halfmove clock', () {
+      final position = Position.fromPieces({
+        Square(4, 6): Piece(.white, .pawn), // e7
+      }, halfMoveCounter: 40);
+      final after = position.applyMove(Move(Square(4, 6), Square(4, 7), promoteTo: .queen)); // e7-e8=Q
+      expect(after.halfMoveCounter, 0);
+    });
   });
 }
